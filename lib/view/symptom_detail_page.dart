@@ -1,5 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:zealth/model/symptom.dart';
+import 'package:zealth/provider/symptoms_provider.dart';
 
 class SymptomDetail extends StatefulWidget {
   final Set<Symptom> selectedSymptoms;
@@ -11,9 +14,20 @@ class SymptomDetail extends StatefulWidget {
 }
 
 class _SymptomDetailState extends State<SymptomDetail> {
-  int _curr = 0;
-
+  bool isFinal = false;
+  int _cur = 1;
   final PageController controller = PageController();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_cur == widget.selectedSymptoms.length) {
+      setState(() {
+        isFinal = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,11 +58,9 @@ class _SymptomDetailState extends State<SymptomDetail> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      controller.animateToPage(
-                        _curr - 1,
-                        curve: Curves.ease,
-                        duration: Duration(milliseconds: 200),
-                      );
+                      controller.previousPage(
+                          duration: Duration(milliseconds: 200),
+                          curve: Curves.ease);
                     },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
@@ -61,21 +73,56 @@ class _SymptomDetailState extends State<SymptomDetail> {
                 ),
                 SizedBox(width: 8.0),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      controller.animateToPage(
-                        _curr + 1,
-                        curve: Curves.ease,
-                        duration: Duration(milliseconds: 200),
+                  child: Consumer<SymptomProvider>(
+                    builder: (BuildContext context, value, Widget child) {
+                      return ElevatedButton(
+                        onPressed: () {
+                          if (controller.page ==
+                              widget.selectedSymptoms.length - 1) {
+                            var map = Map.fromIterable(value.symptoms,
+                                key: (e) => e.id, value: (e) => e.severity);
+
+                            print(map);
+                            showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return CupertinoAlertDialog(
+                                    content: Container(
+                                      child: Text(
+                                        value.symptoms.length.toString(),
+                                      ),
+                                    ),
+                                    actions: [
+                                      CupertinoDialogAction(
+                                        onPressed: () {
+                                          value.removeAll();
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('ok'),
+                                      )
+                                    ],
+                                  );
+                                });
+                            // Navigator.pop(context);
+                          } else {
+                            controller.nextPage(
+                              duration: Duration(milliseconds: 200),
+                              curve: Curves.ease,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          padding: const EdgeInsets.all(16.0),
+                        ),
+                        child: controller.page ==
+                                widget.selectedSymptoms.length - 1
+                            ? Text('Update')
+                            : Text('Next'),
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                      padding: const EdgeInsets.all(16.0),
-                    ),
-                    child: Text('Next'),
                   ),
                 ),
               ],
@@ -123,7 +170,7 @@ class SymptomsDetailPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(5.0),
             ),
             child: RadioListBuilder(
-              conditions: symptom.conditions,
+              symptom: symptom,
             ),
           ),
           SizedBox(
@@ -147,7 +194,9 @@ class SymptomsDetailPage extends StatelessWidget {
                 TextField(
                   decoration: InputDecoration(
                     hintText: "Comment",
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18.0),
+                    ),
                   ),
                 ),
               ],
@@ -160,9 +209,9 @@ class SymptomsDetailPage extends StatelessWidget {
 }
 
 class RadioListBuilder extends StatefulWidget {
-  final List<String> conditions;
+  final Symptom symptom;
 
-  const RadioListBuilder({Key key, this.conditions}) : super(key: key);
+  const RadioListBuilder({Key key, this.symptom}) : super(key: key);
 
   @override
   RadioListBuilderState createState() {
@@ -175,6 +224,7 @@ class RadioListBuilderState extends State<RadioListBuilder> {
 
   @override
   Widget build(BuildContext context) {
+    var symptoms = Provider.of<SymptomProvider>(context, listen: true);
     return ListView.builder(
       shrinkWrap: true,
       itemBuilder: (context, index) {
@@ -184,7 +234,11 @@ class RadioListBuilderState extends State<RadioListBuilder> {
           child: RadioListTile(
             value: index,
             groupValue: value,
-            onChanged: (ind) => setState(() => value = ind),
+            onChanged: (ind) {
+              setState(() => value = ind);
+              widget.symptom.severity = ind + 1;
+              symptoms.add(widget.symptom);
+            },
             title: Row(
               children: [
                 Image.asset(
@@ -194,14 +248,14 @@ class RadioListBuilderState extends State<RadioListBuilder> {
                 ),
                 SizedBox(width: 8.0),
                 Expanded(
-                  child: Text(widget.conditions.elementAt(index)),
+                  child: Text(widget.symptom.conditions.elementAt(index)),
                 ),
               ],
             ),
           ),
         );
       },
-      itemCount: widget.conditions.length,
+      itemCount: widget.symptom.conditions.length,
     );
   }
 }

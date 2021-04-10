@@ -2,9 +2,10 @@ class Symptom {
   final String id;
   final String title;
   final String asset;
+  int severity;
   final List<String> conditions;
 
-  Symptom({this.id, this.title, this.asset, this.conditions});
+  Symptom({this.id, this.severity, this.title, this.asset, this.conditions});
 }
 
 List<Symptom> mockSymptoms = [
