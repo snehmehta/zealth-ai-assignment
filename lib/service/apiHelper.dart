@@ -31,6 +31,7 @@ class ApiBaseHelper {
       final response = await dio.post(AppURL.baseURL + endpoint, data: data);
       responseJson = _returnResponse(response);
     } catch (e) {
+      responseJson = {"status": "failed"};
       print(e.toString());
     }
     return responseJson;

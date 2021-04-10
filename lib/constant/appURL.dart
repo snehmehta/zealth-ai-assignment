@@ -1,3 +1,3 @@
 class AppURL {
-  static final String baseURL = "http://localhost:8080";
+  static final String baseURL = "http://127.0.0.1:8000";
 }

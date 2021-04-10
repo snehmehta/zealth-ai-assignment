@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:zealth/model/symptom.dart';
 import 'package:zealth/provider/symptoms_provider.dart';
+import 'package:zealth/service/service.dart';
+
+import 'components/radio_list_builder.dart';
+import 'components/rounded_container.dart';
 
 class SymptomDetail extends StatefulWidget {
   final Set<Symptom> selectedSymptoms;
@@ -52,7 +56,7 @@ class _SymptomDetailState extends State<SymptomDetail> {
             ),
           ),
           Container(
-            margin: const EdgeInsets.all(8.0),
+            margin: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 Expanded(
@@ -63,12 +67,19 @@ class _SymptomDetailState extends State<SymptomDetail> {
                           curve: Curves.ease);
                     },
                     style: ElevatedButton.styleFrom(
+                      primary: Color(0xFFA5B2BE),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(18.0),
                     ),
-                    child: Text('⬅ Previous'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.keyboard_arrow_left),
+                        Text('Previous'),
+                      ],
+                    ),
                   ),
                 ),
                 SizedBox(width: 8.0),
@@ -82,28 +93,14 @@ class _SymptomDetailState extends State<SymptomDetail> {
                             var map = Map.fromIterable(value.symptoms,
                                 key: (e) => e.id, value: (e) => e.severity);
 
-                            print(map);
-                            showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return CupertinoAlertDialog(
-                                    content: Container(
-                                      child: Text(
-                                        value.symptoms.length.toString(),
-                                      ),
-                                    ),
-                                    actions: [
-                                      CupertinoDialogAction(
-                                        onPressed: () {
-                                          value.removeAll();
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text('ok'),
-                                      )
-                                    ],
-                                  );
-                                });
-                            // Navigator.pop(context);
+                            Service().reportSymptom(map);
+                            value.removeAll();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Report sent: ${map.toString()}')),
+                            );
+                            Navigator.pop(context);
                           } else {
                             controller.nextPage(
                               duration: Duration(milliseconds: 200),
@@ -112,10 +109,11 @@ class _SymptomDetailState extends State<SymptomDetail> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
+                          primary: Color(0xFF51C185),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10.0),
                           ),
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(18.0),
                         ),
                         child: controller.page ==
                                 widget.selectedSymptoms.length - 1
@@ -164,11 +162,7 @@ class SymptomsDetailPage extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(5.0),
-            ),
+          RoundedContainer(
             child: RadioListBuilder(
               symptom: symptom,
             ),
@@ -176,86 +170,32 @@ class SymptomsDetailPage extends StatelessWidget {
           SizedBox(
             height: 16.0,
           ),
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Any medication / Comments",
-                  style:
-                      textTheme.bodyText1.copyWith(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8.0),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: "Comment",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18.0),
+          RoundedContainer(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Any medication / Comments",
+                    style: textTheme.bodyText1
+                        .copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16.0),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: "Comment",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class RadioListBuilder extends StatefulWidget {
-  final Symptom symptom;
-
-  const RadioListBuilder({Key key, this.symptom}) : super(key: key);
-
-  @override
-  RadioListBuilderState createState() {
-    return RadioListBuilderState();
-  }
-}
-
-class RadioListBuilderState extends State<RadioListBuilder> {
-  int value;
-
-  @override
-  Widget build(BuildContext context) {
-    var symptoms = Provider.of<SymptomProvider>(context, listen: true);
-    return ListView.builder(
-      shrinkWrap: true,
-      itemBuilder: (context, index) {
-        return Container(
-          margin:
-              index == 0 ? const EdgeInsets.symmetric(vertical: 16.0) : null,
-          child: RadioListTile(
-            value: index,
-            groupValue: value,
-            onChanged: (ind) {
-              setState(() => value = ind);
-              widget.symptom.severity = ind + 1;
-              symptoms.add(widget.symptom);
-            },
-            title: Row(
-              children: [
-                Image.asset(
-                  'assets/icons/level${index + 1}.png',
-                  width: 30.0,
-                  height: 30.0,
-                ),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: Text(widget.symptom.conditions.elementAt(index)),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      itemCount: widget.symptom.conditions.length,
     );
   }
 }
